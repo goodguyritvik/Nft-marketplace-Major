@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MetaNFT — Modern NFT Marketplace (Academic Demo)
 
 Next.js 16 + Solidity (Hardhat) + Tailwind CSS v4 + ethers v6. Designed for a **smooth final-year viva**: **demo mode** works without wallets or RPC; **hybrid / live** modes opt into a local Hardhat chain or your RPC.
@@ -85,3 +86,6 @@ For a persistent local chain, run **Hardhat node / Anvil** on `8545`, deploy, th
 
 - Demo / dev flows may use a **Hardhat default private key** on the client when chain mode is on — **never use real funds or mainnet keys** in this project as-shipped.
 - Rotate `NEXTAUTH_SECRET` and all third-party keys for any public deployment.
+=======
+# Nft-marketplace-Major
+>>>>>>> fb6f9bf3dce04f09e13a14b090cfb3b8362ada77
