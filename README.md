@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MetaNFT — Modern NFT Marketplace (Academic Demo)
 
-## Getting Started
+Next.js 16 + Solidity (Hardhat) + Tailwind CSS v4 + ethers v6. Designed for a **smooth final-year viva**: **demo mode** works without wallets or RPC; **hybrid / live** modes opt into a local Hardhat chain or your RPC.
 
-First, run the development server:
+## Quick start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). Copy [`.env.example`](.env.example) to `.env.local` and adjust as needed.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Modes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| `NEXT_PUBLIC_RUNTIME_MODE` | Behaviour |
+|----------------------------|-----------|
+| `demo` (default)           | Marketplace data from **localStorage** (`lib/demoStore.js`). Mint, buy, likes, favorites, and comments work offline. |
+| `hybrid`                   | Same as demo until you enable **Blockchain** in the navbar (stores `nft_use_chain` in `localStorage`), then reads/mints via RPC + contracts. |
+| `live`                     | Always uses chain + [`config.js`](config.js) addresses (falls back to demo data if RPC fails). |
 
-## Learn More
+## Auth (NextAuth)
 
-To learn more about Next.js, take a look at the following resources:
+- **Demo login** — always available on [`/auth/signin`](pages/auth/signin). Pick a username; avatar uses DiceBear.
+- **Google** — enabled automatically when `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `NEXTAUTH_SECRET` are set.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Protected routes: **Create NFT** ([`create-item`](pages/create-item.js)), **Dashboard** ([`dashboard`](pages/dashboard.js)) — sign in required.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Image uploads
 
-## Deploy on Vercel
+- Client uploads to [`/api/upload`](pages/api/upload.js) (`multipart/form-data`, field name **`file`**).
+- **≤ 5 MB**, `image/*` only.
+- If **Cloudinary** env vars are set → Cloudinary upload; otherwise file is saved under [`public/uploads`](public/uploads).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## MongoDB (optional)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set `MONGODB_URI`. API routes under `/api/nfts`, `/api/likes`, `/api/comments`, `/api/users` use Mongo when configured; otherwise they return empty / stub payloads and the UI keeps using **client-side** demo storage.
+
+## AI features
+
+- `POST /api/ai/describe` — `{ imageUrl, category }` → `{ title, description, tags }`. Uses OpenAI vision when `OPENAI_API_KEY` is set; otherwise deterministic mocks in [`lib/aiMock.js`](lib/aiMock.js).
+- `POST /api/ai/price` — suggests an ETH list price (mock or OpenAI).
+
+Buttons live on the **Create NFT** page after you have an image URL.
+
+## Smart contracts
+
+- [`contracts/NFT.sol`](contracts/NFT.sol) — `ERC721URIStorage`, `NFTMinted` event, metadata JSON stored as `tokenURI`.
+- [`contracts/Market.sol`](contracts/Market.sol) — listings with `tokenURI` copied from the NFT for marketplace UIs; `ReentrancyGuard` on sales; custom errors.
+
+```bash
+npx hardhat compile
+npx hardhat run scripts/deploy.js --network hardhat   # ephemeral; writes fresh addresses to config.js
+```
+
+For a persistent local chain, run **Hardhat node / Anvil** on `8545`, deploy, then set `NEXT_PUBLIC_RPC_URL` and addresses in `.env.local` if they differ from [`config.js`](config.js).
+
+## Viva walkthrough (5 minutes)
+
+1. Show **Demo mode** badge — no wallet needed.
+2. **Sign in** with demo username → open **Profile** (`/profile/me`) → edit bio (saved in `localStorage`).
+3. **Explore** → use **search / category chips / sort** on the home page.
+4. Open an **NFT detail** → comments, favorites, activity, related NFTs → **Buy** (demo transfer).
+5. **Create NFT** → upload image (or paste URL) → **Generate with AI** / **Suggest price** → mint → appears in grid.
+6. **Dashboard** (signed in) — charts + trending + activity (demo aggregates).
+7. (Optional) Switch runtime to `hybrid`, toggle **Blockchain**, show **Hardhat** mint path with `npm` scripts / deployed addresses.
+
+## Scripts
+
+| Command        | Purpose              |
+|----------------|----------------------|
+| `npm run dev`  | Next.js dev server   |
+| `npm run build`| Production build     |
+| `npm run lint` | ESLint               |
+
+## Project layout (high level)
+
+- [`pages/`](pages/) — UI routes + [`pages/api`](pages/api) backend.
+- [`components/`](components/) — Layout, Navbar, NFTCard, MarketControls, dashboard charts, profile blocks.
+- [`lib/`](lib/) — `marketplace.js` facade, `demoStore.js`, env helpers, auth options, AI mocks, upload client.
+- [`models/`](models/) — Mongoose schemas (optional DB).
+- [`contracts/`](contracts/) — Solidity sources; [`artifacts/`](artifacts/) ABI JSON for the app.
+
+## Security notes (academic scope)
+
+- Demo / dev flows may use a **Hardhat default private key** on the client when chain mode is on — **never use real funds or mainnet keys** in this project as-shipped.
+- Rotate `NEXTAUTH_SECRET` and all third-party keys for any public deployment.
